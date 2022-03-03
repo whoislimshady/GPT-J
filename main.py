@@ -49,9 +49,12 @@ tokenizer = transformers.GPT2TokenizerFast.from_pretrained("gpt2")
 total_batch = per_replica_batch * jax.device_count() // cores_per_replica
 
 network = CausalTransformer(params)
-network.state = read_ckpt(network.state, "./step_383500/", devices.shape[1])
+network.state = read_ckpt(network.state, "step_550/", devices.shape[1])
 del network.state["opt_state"]
 network.state = network.move_xmap(network.state, np.zeros(cores_per_replica))
+
+
+
 
 
 @app.post("/generate")
@@ -63,8 +66,11 @@ async def generate(
     temperature: Optional[float] = 1.0,
     top_p: Optional[float] = 0.9,
     stop_sequence: Optional[str] = None,
+    model_name: Optional[str] ="Persona model",
 ):
     start = time.time()
+
+
     tokens = tokenizer.encode(context)
     provided_ctx = len(tokens)
     if token_max_length + provided_ctx > 2048:
@@ -75,15 +81,9 @@ async def generate(
     batched_tokens = np.array([padded_tokens] * total_batch)
     length = np.ones(total_batch, dtype=np.uint32) * len(tokens)
 
-    output = network.generate(
-        batched_tokens,
-        length,
-        token_max_length,
-        {
-            "top_p": np.ones(total_batch) * top_p,
-            "temp": np.ones(total_batch) * temperature,
-        },
-    )
+
+    output = network.generate(batched_tokens,length,token_max_length,{"top_p": np.ones(total_batch) * top_p,"temp": np.ones(total_batch) * temperature,},)
+
 
     text = tokenizer.decode(output[1][0][0, :, 0])
 
@@ -106,4 +106,3 @@ async def generate(
 
 
 print("GPT-J-6B serving!")
-uvicorn.run(app, host="0.0.0.0", port=5000)

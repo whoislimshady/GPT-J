@@ -7,7 +7,7 @@ def main():
     st.set_page_config(  # Alternate names: setup_page, page, layout
         layout="wide",  # Can be "centered" or "wide". In the future also "dashboard", etc.
         initial_sidebar_state="expanded",  # Can be "auto", "expanded", "collapsed"
-        page_title="Voiceshop",  # String or None. Strings get appended with "• Streamlit".
+        page_title="GPT-J 6B",  # String or None. Strings get appended with "• Streamlit".
         page_icon="voiceshop",  # String, anything supported by st.image, or None.
     )
     st.title("Languge model")
@@ -42,7 +42,7 @@ A:""",
     example = st.selectbox("Choose an example prompt from this selector", ex_names)
 
     inp = st.text_area(
-        "Or write your own prompt here!", example, max_chars=2000, height=50
+        "Or write your own prompt here!", example, max_chars=2000, height=150
     )
 
     try:
@@ -50,45 +50,21 @@ A:""",
     except ValueError:
         rec = 0
 
-    m = [
-        "Empathy model",
-        "Summary model ",
-        """Persona model""",
-        """Vanilla model""",
-    ]
-    model_name = st.selectbox("Choose model of your choice", m)
-
-    stop_sequence = st.text_area(
-        "write your Stop sequence here!", max_chars=2000, height=150
-    )
-
-
-
-
-
-    with st.expander("Parameter to configure..."):
+    with st.expander("Generation options..."):
         length = st.slider(
-            "Genration Length",
+            "Choose the length of the generated texts (in tokens)",
             2,
             1024,
             512 if rec < 2 else 50,
             10,
         )
         temp = st.slider(
-	    "Temperature",
+	
             0.0,
             1.5,
             1.0 if rec < 2 else 0.35,
             0.05,
         )
-        top = st.slider(
-            "TOP-P",
-            0.0,
-            1.0,
-            1.0 if rec < 2 else 0.35,
-            0.05,
-        )
-
 
     response = None
     with st.form(key="inputs"):
@@ -100,13 +76,11 @@ A:""",
                 "context": inp,
                 "token_max_length": length,
                 "temperature": temp,
-                "top_p": top,	
-		"stop_sequence":stop_sequence,
-		"model_name":model_name, 
+                "top_p": 0.9,
             }
 
             query = requests.post("http://localhost:8000/generate", params=payload)
-            print(payload)	    
+	    
             response = query.json()
 
             st.markdown(response["prompt"] + response["text"])
